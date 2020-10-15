@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
+#include <sys/poll.h>
 #include <netdb.h>
 #include <wait.h>
 #include <unistd.h>
