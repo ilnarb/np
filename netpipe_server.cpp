@@ -1,7 +1,9 @@
 #include <signal.h>
 #include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/uio.h>
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <netdb.h>
+#include <wait.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -9,8 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <memory>
+#include <vector>
 #include <thread>
+#include <atomic>
 
 
 void sigchild(int num, siginfo_t *si, void *)
@@ -82,7 +85,6 @@ void worker(int server_fd, int fd, const char *cmd)
 		signal(SIGPIPE, SIG_DFL);
 		//
 		close(server_fd);
-		close(out[1]);
 		//
 		if (dup2(fd, STDIN_FILENO) == -1)
 			fprintf(stderr, "process_t: dup2(%d, STDIN_FILENO) error: %d %s\n", fd, errno, strerror(errno));
@@ -98,7 +100,7 @@ void worker(int server_fd, int fd, const char *cmd)
 
 	close(out[1]);
 	close_on_exec(out[0]);
-	
+
 	char buf[8*1024];
 	while(!stop.load())
 	{
@@ -123,7 +125,7 @@ void worker(int server_fd, int fd, const char *cmd)
 	close(fd);
 }
 
-int server_main(int listen_port, int argc, char *argv[])
+int server_main(int listen_port, const char *cmd)
 {
 	int server_fd;
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
@@ -139,7 +141,7 @@ int server_main(int listen_port, int argc, char *argv[])
 	struct sockaddr_in sa;
 	memset(&sa, 0, sizeof(sa));
 	sa.sin_family = AF_INET;
-	sa.sin_addr = INADDR_ANY;
+	sa.sin_addr.s_addr = INADDR_ANY;
 	sa.sin_port = htons(listen_port);
 	//
 	if (bind(server_fd, (struct sockaddr*) &sa, sizeof(sa)) < 0)
@@ -148,7 +150,7 @@ int server_main(int listen_port, int argc, char *argv[])
 		close(server_fd);
 		return 1;
 	}
-	if (listen(server_fd, config.backlog) < 0)
+	if (listen(server_fd, 10) < 0)
 	{
 		fprintf(stderr, "Cannot listen %d\n", server_fd);
 		close(server_fd);
@@ -170,11 +172,11 @@ int server_main(int listen_port, int argc, char *argv[])
 		int fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
 		if (fd >= 0)
 		{
-			threads.emplace_back(worker, server_fd, fd);
+			threads.emplace_back(worker, server_fd, fd, cmd);
 		}
 	}
 
-	for(auto th : threads)
+	for(auto &th : threads)
 		th.join();
 
 	return 0;
