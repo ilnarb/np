@@ -17,7 +17,7 @@
 #include <atomic>
 
 
-void sigchild(int num, siginfo_t *si, void *)
+void sigchild(int, siginfo_t *si, void *)
 {
 	if (!(si->si_code == CLD_STOPPED || si->si_code == CLD_CONTINUED))
 	{
@@ -26,7 +26,7 @@ void sigchild(int num, siginfo_t *si, void *)
 	}
 }
 std::atomic_bool stop = false;
-void stop_signal(int num)
+void stop_signal(int)
 {
 	stop = true;
 }
