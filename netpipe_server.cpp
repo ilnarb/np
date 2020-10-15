@@ -166,7 +166,7 @@ int server_main(int listen_port, const char *cmd)
 		socklen_t sa_len = sizeof(sa);
 
 		struct pollfd fds;
-		fds.fd = fd;
+		fds.fd = server_fd;
 		fds.revents = 0;
 		fds[0].events = POLLIN | POLLRDNORM | POLLHUP | POLLERR | POLLNVAL;
 		if (poll(&fds, 1, 1000) <= 0) continue;
