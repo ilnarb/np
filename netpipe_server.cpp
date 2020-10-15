@@ -169,7 +169,7 @@ int server_main(int listen_port, const char *cmd)
 		struct pollfd fds;
 		fds.fd = server_fd;
 		fds.revents = 0;
-		fds[0].events = POLLIN | POLLRDNORM | POLLHUP | POLLERR | POLLNVAL;
+		fds.events = POLLIN | POLLRDNORM | POLLHUP | POLLERR | POLLNVAL;
 		if (poll(&fds, 1, 1000) <= 0) continue;
 
 		int fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
