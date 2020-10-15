@@ -22,10 +22,6 @@ void sigchild(int num, siginfo_t *si, void *)
 	{
 		int status = 0;
 		if (wait(&status) == -1) return;
-		if (WIFEXITED(status))
-			exit(WEXITSTATUS(status));
-		else
-			exit(1);
 	}
 }
 std::atomic_bool stop = false;
