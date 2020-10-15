@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 				int n = read(fd, buf, sizeof(buf));
 				if (n < 0 && errno == EINTR) continue;
 				if (n <= 0) break;
-				fprintf(stdout, buf, n);
+				fwrite(buf, 1, n, stdout);
 			}
 		});
 		//
