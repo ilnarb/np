@@ -15,6 +15,15 @@
 int connect_inet(const char *host, int port, int timeout);
 int server_main(int listen_port, const char *cmd);
 
+int sock = -1;
+int status = 0;
+void sigurg(int)
+{
+	int n = recv(sock, &status, sizeof(status), MSG_OOB);
+	if (n != sizeof(status)) status = 0;
+	signal(SIGURG, sigurg);
+}
+
 int main(int argc, char *argv[])
 {
 	int ch;
@@ -53,14 +62,18 @@ int main(int argc, char *argv[])
 	int port = atoi(argv[2]);
 
 	// client
-	int fd = connect_inet(host, port, 5000);
-	if (fd)
+	sock = connect_inet(host, port, 5000);
+	if (sock >= 0)
 	{
+		// want to recv exit status using OOB data
+		fcntl(sock, F_SETOWN, getpid());
+		signal(SIGURG, sigurg);
+		//
 		std::thread thout([&]{
 			while(true)
 			{
 				char buf[8*1024];
-				int n = read(fd, buf, sizeof(buf));
+				int n = read(sock, buf, sizeof(buf));
 				if (n < 0 && errno == EINTR) continue;
 				if (n <= 0) break;
 				fwrite(buf, 1, n, stdout);
@@ -78,7 +91,7 @@ int main(int argc, char *argv[])
 			int wr = 0;
 			do
 			{
-				int n2 = write(fd, buf + wr, n1 - wr);
+				int n2 = write(sock, buf + wr, n1 - wr);
 				if (n2 < 0 && errno == EINTR) continue;
 				if (n2 <= 0) { err = true; break; }
 				wr += n2;
@@ -87,9 +100,13 @@ int main(int argc, char *argv[])
 			if (err) break;
 		}
 		//
-		shutdown(fd, SHUT_WR);
+		shutdown(sock, SHUT_WR);
 		thout.join();
-		close(fd);
+		//
+		close(sock);
+		//
+		if (!WIFEXITED(status))
+			return EXIT_FAILURE;
 	}
 
 	return 0;
@@ -111,7 +128,7 @@ int connect_inet(const char *host, int port, int timeout)
 	if (err != 0)
 	{
 		fprintf(stderr, "Cannot resolve address %s:%s: %d (%s)\n", host, service, err, gai_strerror(err));
-		return false;
+		return -1;
 	}
 
 	struct call_freeaddrinfo_t {
