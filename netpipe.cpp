@@ -19,12 +19,12 @@ int connect_inet(const char *host, int port, int timeout);
 int server_main(int listen_port, const char *cmd);
 
 int sock = -1;
-int status = 0;
+char flag = 0;
 void sigurg(int)
 {
-	int n = recv(sock, &status, sizeof(status), MSG_OOB);
-	if (n != sizeof(status))
-		status = 0;
+	int n = recv(sock, &flag, sizeof(flag), MSG_OOB);
+	if (n != sizeof(flag))
+		flag = 0;
 	signal(SIGURG, sigurg);
 }
 
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 	//
 	close(sock);
 	//
-	if (failed || !WIFEXITED(status))
+	if (failed || flag)
 		return EXIT_FAILURE;
 
 	return 0;

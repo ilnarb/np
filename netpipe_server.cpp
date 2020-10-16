@@ -82,25 +82,37 @@ void worker(int server_fd, int fd, const char *cmd)
 		if (n1 < 0 && errno == EINTR) continue;
 		if (n1 <= 0) break;
 
-		bool err = false;
+		bool failed = false;
 		int wr = 0;
 		do
 		{
 			int n2 = write(fd, buf + wr, n1 - wr);
-			if (n2 < 0 && errno == EINTR) continue;
-			if (n2 <= 0) { err = true; break; }
-			wr += n2;
+			if (n2 < 0)
+			{
+				if (errno == EINTR)
+					continue;
+				failed = true;
+				break;
+			}
+			if (n2 > 0)
+				wr += n2;
+			else
+				break;
 		}
 		while (wr < n1);
-		if (err) break;
+		if (failed)
+			break;
 	}
 */
 	int status = 0;
 	if (waitpid(pid, &status, 0) == 0)
 	{
 		// in case of fail send status using OOB data
-		if (!WIFEXITED(status))
-			send(fd, &status, sizeof(status), MSG_OOB);
+		if (!WIFEXITED(status) || WEXITSTATUS(status))
+		{
+			char flag = 1;
+			send(fd, &flag, sizeof(flag), MSG_OOB);
+		}
 	}
 
 	close(out[0]);
