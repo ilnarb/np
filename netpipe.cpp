@@ -66,39 +66,61 @@ int main(int argc, char *argv[])
 	sock = connect_inet(host, port, 5000);
 	if (sock >= 0)
 	{
+		std::atomic_bool failed = false;
 		// want to recv exit status using OOB data
 		fcntl(sock, F_SETOWN, getpid());
 		signal(SIGURG, sigurg);
 		//
-		std::thread thout([&]{
-			while(true)
+		std::thread thout([&]
+		{
+			while(!failed.load())
 			{
 				char buf[8*1024];
-				int n = read(sock, buf, sizeof(buf));
-				if (n < 0 && errno == EINTR) continue;
-				if (n <= 0) break;
-				fwrite(buf, 1, n, stdout);
+				int n = recv(sock, buf, sizeof(buf), 0);
+				if (n < 0)
+				{
+					if (errno == EINTR)
+						continue;
+					failed = true;
+					break;
+				}
+				if (n > 0)
+					fwrite(buf, 1, n, stdout);
+				else
+					break;
 			}
 		});
 		//
-		while(!feof(stdin))
+		while(!feof(stdin) && !failed.load())
 		{
 			char buf[8*1024];
 			int n1 = read(fileno(stdin), buf, sizeof(buf));
-			if (n1 < 0 && errno == EINTR) continue;
-			if (n1 <= 0) break;
+			if (n1 < 0)
+			{
+				if (errno == EINTR)
+					continue;
+				failed = true;
+				break;
+			}
+			if (n1 == 0) break;
 
-			bool err = false;
 			int wr = 0;
 			do
 			{
-				int n2 = write(sock, buf + wr, n1 - wr);
-				if (n2 < 0 && errno == EINTR) continue;
-				if (n2 <= 0) { err = true; break; }
-				wr += n2;
+				int n2 = send(sock, buf + wr, n1 - wr, 0);
+				if (n2 < 0)
+				{
+					if (errno == EINTR)
+						continue;
+					failed = true;
+					break;
+				}
+				if (n2 > 0)
+					wr += n2;
+				else
+					break;
 			}
 			while (wr < n1);
-			if (err) break;
 		}
 		//
 		shutdown(sock, SHUT_WR);
@@ -106,11 +128,11 @@ int main(int argc, char *argv[])
 		//
 		close(sock);
 		//
-		if (!WIFEXITED(status))
+		if (failed || !WIFEXITED(status))
 			return EXIT_FAILURE;
 	}
 
-	return 0;
+	return EXIT_FAILURE;
 }
 
 int connect_inet(const char *host, int port, int timeout)
