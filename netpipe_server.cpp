@@ -17,32 +17,10 @@
 #include <atomic>
 
 
-void sigchild(int, siginfo_t *si, void *)
-{
-	if (!(si->si_code == CLD_STOPPED || si->si_code == CLD_CONTINUED))
-	{
-		int status = 0;
-		if (wait(&status) == -1) return;
-	}
-}
 std::atomic_bool stop = false;
 void stop_signal(int)
 {
 	stop = true;
-}
-
-typedef void (*sa_sigaction_t) (int, siginfo_t *, void *);
-sa_sigaction_t set_signal_3(int signum, sa_sigaction_t handler)
-{
-	struct sigaction act, oldact;
-
-	act.sa_sigaction = handler;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = SA_SIGINFO;
-	act.sa_flags |= (signum == SIGALRM) ? SA_INTERRUPT : SA_RESTART;
-
-	if (sigaction(signum, &act, &oldact) < 0) return (sa_sigaction_t)-1;
-	return oldact.sa_sigaction;
 }
 
 void close_pipe(int *pipe)
@@ -75,7 +53,6 @@ void worker(int server_fd, int fd, const char *cmd)
 	}
 	if (pid == 0)
 	{
-		signal(SIGCHLD, SIG_DFL);
 		signal(SIGINT, SIG_DFL);
 		signal(SIGQUIT, SIG_DFL);
 		signal(SIGTERM, SIG_DFL);
@@ -85,7 +62,8 @@ void worker(int server_fd, int fd, const char *cmd)
 		//
 		if (dup2(fd, STDIN_FILENO) == -1)
 			fprintf(stderr, "process_t: dup2(%d, STDIN_FILENO) error: %d %s\n", fd, errno, strerror(errno));
-		if (dup2(out[1], STDOUT_FILENO) == -1)
+//		if (dup2(out[1], STDOUT_FILENO) == -1)
+		if (dup2(fd, STDOUT_FILENO) == -1)
 			fprintf(stderr, "process_t: dup2(%d, STDOUT_FILENO) error: %d %s\n", out[1], errno, strerror(errno));
 		close_pipe(out);
 		//
@@ -97,7 +75,7 @@ void worker(int server_fd, int fd, const char *cmd)
 
 	close(out[1]);
 	close_on_exec(out[0]);
-
+/*
 	char buf[8*1024];
 	while(!stop.load())
 	{
@@ -116,6 +94,14 @@ void worker(int server_fd, int fd, const char *cmd)
 		}
 		while (wr < n1);
 		if (err) break;
+	}
+*/
+	int status = 0;
+	if (waitpid(pid, &status, 0) == 0)
+	{
+		// in case of fail send status using OOB data
+		if (!WIFEXITED(status))
+			send(fd, &status, sizeof(status), MSG_OOB);
 	}
 
 	close(out[0]);
@@ -154,7 +140,6 @@ int server_main(int listen_port, const char *cmd)
 		return 1;
 	}
 
-	set_signal_3(SIGCHLD, sigchild);
 	signal(SIGINT, stop_signal);
 	signal(SIGQUIT, stop_signal);
 	signal(SIGTERM, stop_signal);
