@@ -19,12 +19,11 @@ int connect_inet(const char *host, int port, int timeout);
 int server_main(int listen_port, const char *cmd);
 
 int sock = -1;
-char flag = 0;
+int flag = 0;
 void sigurg(int)
 {
 	int n = recv(sock, &flag, sizeof(flag), MSG_OOB);
-	if (n != sizeof(flag))
-		flag = 0;
+//	if (n < 0) flag = 0;
 	signal(SIGURG, sigurg);
 }
 
@@ -65,15 +64,16 @@ int main(int argc, char *argv[])
 	const char *host = argv[1];
 	int port = atoi(argv[2]);
 
+	std::atomic_bool failed = false;
 	// client
 	sock = connect_inet(host, port, 5000);
 	if (sock < 0)
 		return EXIT_FAILURE;
 
-	std::atomic_bool failed = false;
 	// want to recv exit status using OOB data
 	fcntl(sock, F_SETOWN, getpid());
 	signal(SIGURG, sigurg);
+
 	//
 	std::thread thout([&] {
 		while (!failed.load())

@@ -111,7 +111,7 @@ void worker(int server_fd, int fd, const char *cmd)
 		if (!WIFEXITED(status) || WEXITSTATUS(status))
 		{
 			char flag = 1;
-			send(fd, &flag, sizeof(flag), MSG_OOB);
+			send(fd, &flag, 1, MSG_OOB);
 		}
 	}
 
