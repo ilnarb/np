@@ -16,7 +16,6 @@
 #include <thread>
 #include <atomic>
 
-
 std::atomic_bool stop = false;
 void stop_signal(int)
 {
@@ -62,20 +61,20 @@ void worker(int server_fd, int fd, const char *cmd)
 		//
 		if (dup2(fd, STDIN_FILENO) == -1)
 			fprintf(stderr, "process_t: dup2(%d, STDIN_FILENO) error: %d %s\n", fd, errno, strerror(errno));
-//		if (dup2(out[1], STDOUT_FILENO) == -1)
+		//		if (dup2(out[1], STDOUT_FILENO) == -1)
 		if (dup2(fd, STDOUT_FILENO) == -1)
 			fprintf(stderr, "process_t: dup2(%d, STDOUT_FILENO) error: %d %s\n", out[1], errno, strerror(errno));
 		close_pipe(out);
 		//
 		if (execl("/bin/sh", "sh", "-c", cmd, NULL) == -1)
-			fprintf(stderr, "process_t: execl(\"/bin/sh\", \"sh\", \"-c\", \"%s\", NULL) error: %d %s\n", cmd, errno, strerror(errno));
+			fprintf(stderr, "execl(\"/bin/sh\", \"sh\", \"-c\", \"%s\", NULL) error: %d %s\n", cmd, errno, strerror(errno));
 		// should never happen
 		exit(0);
 	}
 
 	close(out[1]);
 	close_on_exec(out[0]);
-/*
+	/*
 	char buf[8*1024];
 	while(!stop.load())
 	{
@@ -127,7 +126,7 @@ int server_main(int listen_port, const char *cmd)
 	sa.sin_addr.s_addr = INADDR_ANY;
 	sa.sin_port = htons(listen_port);
 	//
-	if (bind(server_fd, (struct sockaddr*) &sa, sizeof(sa)) < 0)
+	if (bind(server_fd, (struct sockaddr *)&sa, sizeof(sa)) < 0)
 	{
 		fprintf(stderr, "Cannot bind\n");
 		close(server_fd);
@@ -146,7 +145,7 @@ int server_main(int listen_port, const char *cmd)
 	signal(SIGPIPE, SIG_IGN);
 
 	std::vector<std::thread> threads;
-	while(!stop.load())
+	while (!stop.load())
 	{
 		struct sockaddr_in sa;
 		socklen_t sa_len = sizeof(sa);
@@ -155,16 +154,17 @@ int server_main(int listen_port, const char *cmd)
 		fds.fd = server_fd;
 		fds.revents = 0;
 		fds.events = POLLIN | POLLRDNORM | POLLHUP | POLLERR | POLLNVAL;
-		if (poll(&fds, 1, 1000) <= 0) continue;
+		if (poll(&fds, 1, 1000) <= 0)
+			continue;
 
-		int fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
+		int fd = accept(server_fd, (struct sockaddr *)&sa, &sa_len);
 		if (fd >= 0)
 		{
 			threads.emplace_back(worker, server_fd, fd, cmd);
 		}
 	}
 
-	for(auto &th : threads)
+	for (auto &th : threads)
 		th.join();
 
 	return 0;
