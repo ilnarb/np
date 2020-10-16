@@ -11,7 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
 #include <thread>
+#include <atomic>
 
 int connect_inet(const char *host, int port, int timeout);
 int server_main(int listen_port, const char *cmd);
