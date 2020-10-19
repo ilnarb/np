@@ -6,13 +6,22 @@
 int connect_inet(const char *host, int port, int timeout);
 int server_main(int listen_port, const char *cmd);
 
-int sock = -1;
-int flag = 0;
-void sigurg(int)
+namespace
 {
-	int n = recv(sock, &flag, sizeof(flag), MSG_OOB);
-//	if (n < 0) flag = 0;
-	signal(SIGURG, sigurg);
+	std::atomic_bool stop = false;
+	void stop_signal(int)
+	{
+		stop = true;
+	}
+	//
+	int sock = -1;
+	int flag = 0;
+	void sigurg(int)
+	{
+		int n = recv(sock, &flag, sizeof(flag), MSG_OOB);
+	//	if (n < 0) flag = 0;
+		signal(SIGURG, sigurg);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -67,9 +76,14 @@ int main(int argc, char *argv[])
 	fcntl(sock, F_SETOWN, getpid());
 	signal(SIGURG, sigurg);
 
+	signal(SIGINT, stop_signal);
+	signal(SIGQUIT, stop_signal);
+	signal(SIGTERM, stop_signal);
+	signal(SIGPIPE, SIG_IGN);
+
 	//
 	std::thread thout([&] {
-		while (!failed.load())
+		while (!stop.load() && !failed.load())
 		{
 			int rsize = 0, wsize = 0;
 			if (!rw_round(sock, STDOUT_FILENO, rsize, wsize))
@@ -82,7 +96,7 @@ int main(int argc, char *argv[])
 		}
 	});
 	//
-	while(!failed.load())
+	while(!stop.load() && !failed.load())
 	{
 		int rsize = 0, wsize = 0;
 		if (!rw_round(STDIN_FILENO, sock, rsize, wsize))
@@ -99,7 +113,7 @@ int main(int argc, char *argv[])
 	//
 	close(sock);
 	//
-	if (failed || flag)
+	if (stop || failed || flag)
 		return EXIT_FAILURE;
 
 	return 0;

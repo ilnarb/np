@@ -4,13 +4,16 @@
 #include <thread>
 #include <atomic>
 
-std::atomic_bool stop = false;
-void stop_signal(int)
-{
-	stop = true;
-}
-
 #define DUP2_STDOUT_2SOCKET 1
+
+namespace
+{
+	std::atomic_bool stop = false;
+	void stop_signal(int)
+	{
+		stop = true;
+	}
+}
 
 void worker(int server_fd, int fd, const char *cmd)
 {
@@ -85,7 +88,7 @@ void worker(int server_fd, int fd, const char *cmd)
 			send(fd, &flag, 1, MSG_OOB);
 		}
 	}
-	else if (failed)
+	else if (stop || failed)
 	{
 		char flag = 1;
 		send(fd, &flag, 1, MSG_OOB);
