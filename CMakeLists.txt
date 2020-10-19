@@ -17,5 +17,5 @@ add_compile_options(-pthread)
 
 INCLUDE_DIRECTORIES(include)
 
-ADD_EXECUTABLE(np netpipe.cpp netpipe_server.cpp misc.cpp)
+ADD_EXECUTABLE(np netpipe.cpp netpipe_server.cpp src/misc.cpp)
 TARGET_LINK_LIBRARIES(np pthread)
