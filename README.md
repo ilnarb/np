@@ -2,9 +2,9 @@
 
 NetPipe is pipe over the TCP like **nc** (Ncat) with additional features:
 1. listens to connections infinitely
-1. could accept parallel connections 
+1. accepts parallel connections 
 1. starts specified command for all connections separately
-1. returns back command stdout to the client
+1. returns back command's stdout to the client
 1. sends a signal in case of command failed and client side exits with 1
 
 ## Build and install
