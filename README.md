@@ -1,6 +1,6 @@
 # np
 
-NetPipe is pipe over the TCP like **nc** (Ncat) with additional features:
+NetPipe makes a pipe over the TCP like **nc** (Ncat) with additional features:
 1. listens to connections infinitely
 1. accepts parallel connections 
 1. starts specified command for all connections separately
