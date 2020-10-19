@@ -64,7 +64,6 @@ void worker(int server_fd, int fd, const char *cmd)
 #if DUP2_STDOUT_2SOCKET
 	close(out[0]);
 #else
-	char buf[8*1024];
 	while(!stop.load())
 	{
 		int rsize = 0, wsize = 0;
