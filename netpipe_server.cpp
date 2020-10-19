@@ -22,31 +22,21 @@ void stop_signal(int)
 	stop = true;
 }
 
-void close_pipe(int *pipe)
-{
-	close(pipe[0]);
-	close(pipe[1]);
-}
-void close_on_exec(int fd)
-{
-	int flags = fcntl(fd, F_GETFD, 0);
-	if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
-		fprintf(stderr, "process_t: fcntl(%d, F_SETFD, CLOEXEC) error: %d %s\n", fd, errno, strerror(errno));
-}
+#define DUP2_STDOUT_2SOCKET 1
 
 void worker(int server_fd, int fd, const char *cmd)
 {
 	int out[2];
 	if (pipe(out) == -1)
 	{
-		fprintf(stderr, "pipe failed: %d (%s)\n", errno, strerror(errno));
+		message(true, "pipe failed");
 		return;
 	}
 	//
 	pid_t pid = fork();
 	if (pid == -1)
 	{
-		fprintf(stderr, "fork failed: %d (%s)\n", errno, strerror(errno));
+		message(true, "fork failed");
 		close_pipe(out);
 		return;
 	}
@@ -60,50 +50,43 @@ void worker(int server_fd, int fd, const char *cmd)
 		close(server_fd);
 		//
 		if (dup2(fd, STDIN_FILENO) == -1)
-			fprintf(stderr, "process_t: dup2(%d, STDIN_FILENO) error: %d %s\n", fd, errno, strerror(errno));
-		//		if (dup2(out[1], STDOUT_FILENO) == -1)
+			message(true, "dup2(%d, STDIN_FILENO) failed\n", fd);
+#if DUP2_STDOUT_2SOCKET
 		if (dup2(fd, STDOUT_FILENO) == -1)
-			fprintf(stderr, "process_t: dup2(%d, STDOUT_FILENO) error: %d %s\n", out[1], errno, strerror(errno));
+			message(true, "dup2(%d, STDOUT_FILENO) failed\n", fd);
+#else
+		if (dup2(out[1], STDOUT_FILENO) == -1)
+			message(true, "dup2(%d, STDOUT_FILENO) failed\n", out[1]);
+#endif
 		close_pipe(out);
 		//
 		if (execl("/bin/sh", "sh", "-c", cmd, NULL) == -1)
-			fprintf(stderr, "execl(\"/bin/sh\", \"sh\", \"-c\", \"%s\", NULL) error: %d %s\n", cmd, errno, strerror(errno));
+			message(true, "execl(\"/bin/sh\", \"sh\", \"-c\", \"%s\", NULL) error: %d %s\n", cmd, errno, strerror(errno));
 		// should never happen
-		exit(0);
+		exit(1);
 	}
 
 	close(out[1]);
 	close_on_exec(out[0]);
-	/*
+
+	bool failed = false;
+#if DUP2_STDOUT_2SOCKET
+	close(out[0]);
+#else
 	char buf[8*1024];
 	while(!stop.load())
 	{
-		int n1 = read(out[0], buf, sizeof(buf));
-		if (n1 < 0 && errno == EINTR) continue;
-		if (n1 <= 0) break;
-
-		bool failed = false;
-		int wr = 0;
-		do
+		int rsize = 0, wsize = 0;
+		if (!rw_round(out[0], fd, rsize, wsize))
 		{
-			int n2 = write(fd, buf + wr, n1 - wr);
-			if (n2 < 0)
-			{
-				if (errno == EINTR)
-					continue;
-				failed = true;
-				break;
-			}
-			if (n2 > 0)
-				wr += n2;
-			else
-				break;
+			failed = true;
+			break;
 		}
-		while (wr < n1);
-		if (failed)
+		if (rsize == 0)
 			break;
 	}
-*/
+#endif
+
 	int status = 0;
 	if (waitpid(pid, &status, 0) == 0)
 	{
@@ -114,8 +97,12 @@ void worker(int server_fd, int fd, const char *cmd)
 			send(fd, &flag, 1, MSG_OOB);
 		}
 	}
+	else if (failed)
+	{
+		char flag = 1;
+		send(fd, &flag, 1, MSG_OOB);
+	}
 
-	close(out[0]);
 	close(fd);
 }
 
@@ -129,7 +116,7 @@ int server_main(int listen_port, const char *cmd)
 	int onoff = 1;
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &onoff, sizeof(onoff)) < 0)
 	{
-		fprintf(stderr, "Cannot setsockopt(%d, SOL_SOCKET, SO_REUSEADDR, %d)\n", server_fd, onoff);
+		message(true, "Cannot setsockopt(%d, SOL_SOCKET, SO_REUSEADDR, %d)\n", server_fd, onoff);
 	}
 
 	struct sockaddr_in sa;
@@ -140,13 +127,13 @@ int server_main(int listen_port, const char *cmd)
 	//
 	if (bind(server_fd, (struct sockaddr *)&sa, sizeof(sa)) < 0)
 	{
-		fprintf(stderr, "Cannot bind\n");
+		message(true, "Cannot bind\n");
 		close(server_fd);
 		return 1;
 	}
 	if (listen(server_fd, 10) < 0)
 	{
-		fprintf(stderr, "Cannot listen %d\n", server_fd);
+		message(true, "Cannot listen %d\n", server_fd);
 		close(server_fd);
 		return 1;
 	}
