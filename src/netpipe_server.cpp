@@ -17,18 +17,22 @@ namespace
 
 void worker(int server_fd, int fd, const char *cmd)
 {
+#if !DUP2_STDOUT_2SOCKET
 	int out[2];
 	if (pipe(out) == -1)
 	{
 		message(true, "pipe failed");
 		return;
 	}
+#endif
 	//
 	pid_t pid = fork();
 	if (pid == -1)
 	{
 		message(true, "fork failed");
+#if !DUP2_STDOUT_2SOCKET
 		close_pipe(out);
+#endif
 		return;
 	}
 	if (pid == 0)
@@ -42,28 +46,27 @@ void worker(int server_fd, int fd, const char *cmd)
 		//
 		if (dup2(fd, STDIN_FILENO) == -1)
 			message(true, "dup2(%d, STDIN_FILENO) failed\n", fd);
+		//
 #if DUP2_STDOUT_2SOCKET
 		if (dup2(fd, STDOUT_FILENO) == -1)
 			message(true, "dup2(%d, STDOUT_FILENO) failed\n", fd);
 #else
 		if (dup2(out[1], STDOUT_FILENO) == -1)
 			message(true, "dup2(%d, STDOUT_FILENO) failed\n", out[1]);
-#endif
 		close_pipe(out);
+#endif
 		//
 		if (execl("/bin/sh", "sh", "-c", cmd, NULL) == -1)
-			message(true, "execl(\"/bin/sh\", \"sh\", \"-c\", \"%s\", NULL) error: %d %s\n", cmd, errno, strerror(errno));
+			message(true, "execl(\"/bin/sh\", \"sh\", \"-c\", \"%s\", NULL) failed", cmd);
 		// should never happen
 		exit(1);
 	}
 
+	bool failed = false;
+#if !DUP2_STDOUT_2SOCKET
 	close(out[1]);
 	close_on_exec(out[0]);
 
-	bool failed = false;
-#if DUP2_STDOUT_2SOCKET
-	close(out[0]);
-#else
 	while (!stop.load())
 	{
 		int rsize = 0, wsize = 0;
@@ -75,6 +78,7 @@ void worker(int server_fd, int fd, const char *cmd)
 		if (rsize == 0)
 			break;
 	}
+	close(out[0]);
 #endif
 
 	int status = 0;
