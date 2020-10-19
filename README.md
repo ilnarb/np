@@ -13,8 +13,10 @@ NetPipe is pipe over the TCP like **nc** (netcat) with additional features:
 
 ### example 1
 
-`server$ np -l 3000 md5sum
-client$ np localhost 3000 < file`
+```
+server$ np -l 3000 md5sum
+client$ np localhost 3000 < file
+```
 
 > 6de5dd9caade388447c1d4747472cfcf  -
 
