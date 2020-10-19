@@ -8,7 +8,7 @@
 
 namespace
 {
-	std::atomic_bool stop = false;
+	std::atomic_bool stop{false};
 	void stop_signal(int)
 	{
 		stop = true;
