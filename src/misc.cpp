@@ -25,8 +25,8 @@ int safe_snprintf(char *str, size_t size, const char *format, ...)
 
 void message(bool error, const char *format, ...)
 {
-	int log = STDERR_FILENO;
-	int hold_errno = errno;
+    int log = STDERR_FILENO;
+    int hold_errno = errno;
 
     if (log < 0)
         return;
@@ -74,114 +74,113 @@ void message(bool error, const char *format, ...)
 
 int connect_inet(const char *host, int port, int timeout)
 {
-	struct addrinfo hints;
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;	 // IPv4 or IPv6
-	hints.ai_socktype = SOCK_STREAM; // Stream socket type
-	hints.ai_protocol = IPPROTO_TCP; // TCP proto
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;     // IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM; // Stream socket type
+    hints.ai_protocol = IPPROTO_TCP; // TCP proto
 
-	char service[32];
-	sprintf(service, "%d", port);
+    char service[32];
+    sprintf(service, "%d", port);
 
-	struct addrinfo *addrinfo = NULL;
-	int err = getaddrinfo(host, service, &hints, &addrinfo);
-	if (err != 0)
-	{
-		message(false, "Cannot resolve address %s:%s: %d (%s)\n", host, service, err, gai_strerror(err));
-		return -1;
-	}
+    struct addrinfo *addrinfo = NULL;
+    int err = getaddrinfo(host, service, &hints, &addrinfo);
+    if (err != 0)
+    {
+        message(false, "Cannot resolve address %s:%s: %d (%s)\n", host, service, err, gai_strerror(err));
+        return -1;
+    }
 
-	struct call_freeaddrinfo_t
-	{
-		struct addrinfo *&_addrinfo;
-		call_freeaddrinfo_t(struct addrinfo *&addrinfo) : _addrinfo(addrinfo) {}
-		~call_freeaddrinfo_t()
-		{
-			if (_addrinfo)
-			{
-				freeaddrinfo(_addrinfo);
-				_addrinfo = NULL;
-			}
-		}
-	}
-    call_freeaddrinfo(addrinfo);
+    struct call_freeaddrinfo_t
+    {
+        struct addrinfo *&_addrinfo;
+        call_freeaddrinfo_t(struct addrinfo *&addrinfo) : _addrinfo(addrinfo) {}
+        ~call_freeaddrinfo_t()
+        {
+            if (_addrinfo)
+            {
+                freeaddrinfo(_addrinfo);
+                _addrinfo = NULL;
+            }
+        }
+    } call_freeaddrinfo(addrinfo);
 
-	int fd = -1;
-	for (auto p = addrinfo; p != NULL; p = p->ai_next)
-	{
+    int fd = -1;
+    for (auto p = addrinfo; p != NULL; p = p->ai_next)
+    {
         if (fd >= 0)
         {
             close(fd);
             fd = -1;
         }
 
-		fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-		if (fd == -1)
-		{
-			// Protocol is not supported on the host
-			message(true, "failed to create socket");
-			continue;
-		}
+        fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if (fd == -1)
+        {
+            // Protocol is not supported on the host
+            message(true, "failed to create socket");
+            continue;
+        }
 
-		// Enable non-blocking I/O
-		int flags = fcntl(fd, F_GETFL, 0);
-		if (flags == -1)
-		{
-			message(true, "switching to async mode failed");
-			continue;
-		}
-		// set nonblocing mode to use timeout while connecting
-		if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-		{
-			message(true, "switching to async mode failed");
-			continue;
-		}
+        // Enable non-blocking I/O
+        int flags = fcntl(fd, F_GETFL, 0);
+        if (flags == -1)
+        {
+            message(true, "switching to async mode failed");
+            continue;
+        }
+        // set nonblocing mode to use timeout while connecting
+        if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+        {
+            message(true, "switching to async mode failed");
+            continue;
+        }
 
-		// pending connect request
-		if (connect(fd, p->ai_addr, p->ai_addrlen) < 0 && errno != EINPROGRESS && errno != EINTR)
-		{
-			message(true, "connect error");
-			continue;
-		}
+        // pending connect request
+        if (connect(fd, p->ai_addr, p->ai_addrlen) < 0 && errno != EINPROGRESS && errno != EINTR)
+        {
+            message(true, "connect error");
+            continue;
+        }
 
-		struct pollfd fds;
-		fds.fd = fd;
-		fds.revents = 0;
-		fds.events = POLLOUT | POLLWRNORM;
-		int ret = poll(&fds, 1, timeout);
-		if (ret == 0)
-		{
-			message(true, "connect timeout expired");
-			continue;
-		}
-		if (ret < 0)
-		{
-			message(true, "poll error");
-			continue;
-		}
-		//
-		int err = 0;
-		socklen_t len = sizeof(err);
-		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
-		{
-			message(true, "getsockopt failed");
-			continue;
-		}
-		if (err)
-		{
-			message(true, "cant connect");
-			continue;
-		}
+        struct pollfd fds;
+        fds.fd = fd;
+        fds.revents = 0;
+        fds.events = POLLOUT | POLLWRNORM;
+        int ret = poll(&fds, 1, timeout);
+        if (ret == 0)
+        {
+            message(true, "connect timeout expired");
+            continue;
+        }
+        if (ret < 0)
+        {
+            message(true, "poll error");
+            continue;
+        }
+        //
+        int err = 0;
+        socklen_t len = sizeof(err);
+        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
+        {
+            message(true, "getsockopt failed");
+            continue;
+        }
+        if (err)
+        {
+            message(true, "cant connect");
+            continue;
+        }
 
-		// return to blocking mode
-		if (fcntl(fd, F_SETFL, flags) < 0)
-		{
-			message(true, "cant switch to blocking mode");
-			continue;
-		}
+        // return to blocking mode
+        if (fcntl(fd, F_SETFL, flags) < 0)
+        {
+            message(true, "cant switch to blocking mode");
+            continue;
+        }
 
-		return fd;
-	}
+        return fd;
+    }
 
     if (fd >= 0)
     {
@@ -193,8 +192,8 @@ int connect_inet(const char *host, int port, int timeout)
 
 void close_pipe(int *pipe)
 {
-	close(pipe[0]);
-	close(pipe[1]);
+    close(pipe[0]);
+    close(pipe[1]);
 }
 
 void close_on_exec(int fd)
@@ -231,7 +230,7 @@ bool rw_round(int rfd, int wfd, int &rsize, int &wsize)
         else
             break;
     }
-    while(wsize < rsize);
+    while (wsize < rsize);
 
     return true;
 }

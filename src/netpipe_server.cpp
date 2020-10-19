@@ -13,7 +13,7 @@ namespace
 	{
 		stop = true;
 	}
-}
+} // namespace
 
 void worker(int server_fd, int fd, const char *cmd)
 {
@@ -64,7 +64,7 @@ void worker(int server_fd, int fd, const char *cmd)
 #if DUP2_STDOUT_2SOCKET
 	close(out[0]);
 #else
-	while(!stop.load())
+	while (!stop.load())
 	{
 		int rsize = 0, wsize = 0;
 		if (!rw_round(out[0], fd, rsize, wsize))

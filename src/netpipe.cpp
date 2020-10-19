@@ -21,7 +21,7 @@ namespace
 		recv(sock, &flag, sizeof(flag), MSG_OOB);
 		signal(SIGURG, sigurg);
 	}
-}
+} // namespace
 
 int main(int argc, char *argv[])
 {
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 		}
 	});
 	//
-	while(!stop.load() && !failed.load())
+	while (!stop.load() && !failed.load())
 	{
 		int rsize = 0, wsize = 0;
 		if (!rw_round(STDIN_FILENO, sock, rsize, wsize))
