@@ -1,9 +1,5 @@
 #include "misc.h"
 
-#include <stdarg.h>
-#include <sys/poll.h>
-#include <netdb.h>
-
 int safe_snprintf(char *str, size_t size, const char *format, ...)
 {
     if (size == 1)
@@ -27,7 +23,7 @@ int safe_snprintf(char *str, size_t size, const char *format, ...)
     return n;
 }
 
-void message(bool error, const char *fmt, ...)
+void message(bool error, const char *format, ...)
 {
 	int log = STDERR_FILENO;
 	int hold_errno = errno;
@@ -39,7 +35,7 @@ void message(bool error, const char *fmt, ...)
     const int max_string = sizeof(string) - 1; // -1 for trailing \n
 
     va_list ap;
-    va_start(ap, fmt);
+    va_start(ap, format);
     int n = vsnprintf(string, max_string, format, ap);
     va_end(ap);
 
@@ -230,7 +226,7 @@ bool rw_round(int rfd, int wfd, int &rsize, int &wsize)
         int n = write(wfd, buf + wsize, rsize - wsize);
         if (n < 0)
             return (errno == EINTR);
-        if (n2 > 0)
+        if (n > 0)
             wsize += n;
         else
             break;
