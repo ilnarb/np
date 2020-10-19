@@ -1,16 +1,4 @@
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/tcp.h>
-#include <sys/poll.h>
-#include <netdb.h>
-#include <wait.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "misc.h"
 
 #include <vector>
 #include <thread>
