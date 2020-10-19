@@ -7,7 +7,11 @@ NetPipe is pipe over the TCP like **nc** (netcat) with additional features:
 1. returns back command stdout to the client
 1. sends a signal in case of command failed and client side exits with 1
 
-## example 1
+## Build and install
+
+`mkdir build && cd build && cmake .. && make install`
+
+### example 1
 
 `server$ np -l 3000 md5sum`
 
@@ -19,7 +23,7 @@ NetPipe is pipe over the TCP like **nc** (netcat) with additional features:
 
 > 6de5dd9caade388447c1d4747472cfcf  -
 
-## example 2
+### example 2
 
 `server$ np -l 3000 tar -C /path/to -xpv`
 
@@ -32,5 +36,4 @@ NetPipe is pipe over the TCP like **nc** (netcat) with additional features:
 `client$ tar -c file3 sub/file4 | np localhost 3000`
 
 > file3
-
-> sub/file4
+sub/file4
