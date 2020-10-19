@@ -8,16 +8,16 @@ NetPipe is pipe over the TCP like **nc** (netcat) with additional features:
 
 ## example 1
 `server$ np -l 3000 md5sum`
-> client$ np localhost 3000 < file
+`client$ np localhost 3000 < file`
 > 6de5dd9caade388447c1d4747472cfcf  -
-> client$ np localhost 3000 < file
+`client$ np localhost 3000 < file`
 > 6de5dd9caade388447c1d4747472cfcf  -
 
 ## example 2
-> server$ np -l 3000 tar -C /path/to -xpv
-> client$ tar -c file1 sub/file2 | np localhost 3000
+`server$ np -l 3000 tar -C /path/to -xpv`
+`client$ tar -c file1 sub/file2 | np localhost 3000`
 > file1
 > sub/file2
-> client$ tar -c file3 sub/file4 | np localhost 3000
+`client$ tar -c file3 sub/file4 | np localhost 3000`
 > file3
 > sub/file4
