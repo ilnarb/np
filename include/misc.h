@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <signal.h>
 #include <wait.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>

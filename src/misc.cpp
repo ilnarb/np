@@ -1,5 +1,9 @@
 #include "misc.h"
 
+#include <stdarg.h>
+#include <sys/poll.h>
+#include <netdb.h>
+
 int safe_snprintf(char *str, size_t size, const char *format, ...)
 {
     if (size == 1)
