@@ -18,8 +18,7 @@ namespace
 	int flag = 0;
 	void sigurg(int)
 	{
-		int n = recv(sock, &flag, sizeof(flag), MSG_OOB);
-	//	if (n < 0) flag = 0;
+		recv(sock, &flag, sizeof(flag), MSG_OOB);
 		signal(SIGURG, sigurg);
 	}
 }
