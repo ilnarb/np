@@ -15,6 +15,7 @@ add_compile_options(-Wno-long-long)
 add_compile_options(-fno-strict-aliasing)
 add_compile_options(-pthread)
 
+INCLUDE_DIRECTORIES(include)
 
 ADD_EXECUTABLE(np netpipe.cpp netpipe_server.cpp)
 TARGET_LINK_LIBRARIES(np pthread)
