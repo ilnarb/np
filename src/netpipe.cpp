@@ -8,7 +8,7 @@ int server_main(int listen_port, const char *cmd);
 
 namespace
 {
-	std::atomic_bool stop = false;
+	std::atomic_bool stop{false};
 	void stop_signal(int)
 	{
 		stop = true;
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 	const char *host = argv[1];
 	int port = atoi(argv[2]);
 
-	std::atomic_bool failed = false;
+	std::atomic_bool failed{false};
 	// client
 	sock = connect_inet(host, port, 5000);
 	if (sock < 0)

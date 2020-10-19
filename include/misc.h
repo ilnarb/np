@@ -16,13 +16,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <string>
-using namespace std::string_literals;
-
-
 int safe_snprintf(char *str, size_t size, const char *format, ...) __attribute__ (( format (printf, 3, 4) ));
 void message(bool error, const char *fmt, ...) __attribute__ (( format (printf, 2, 3) ));
-
 
 int connect_inet(const char *host, int port, int timeout);
 
