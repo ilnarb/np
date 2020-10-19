@@ -54,3 +54,23 @@ client$ tar -c file1 sub/file2 | nc localhost 3000
 client$ tar -c file3 sub/file4 | nc localhost 3000`
 Ncat: Connection refused.
 ```
+
+### Benchmark on 15Gb file
+##### NetPipe
+```
+server$ np -l 3000 "cat >/dev/null"
+
+client$ time np localhost 3000 < file
+real	0m12.963s
+user	0m0.767s
+sys	0m12.190s
+```
+##### Ncat
+```
+server$ nc -l 3000 -c "cat >/dev/null"
+
+client$ time nc localhost 3000 < file
+real	0m25.887s
+user	0m7.592s
+sys	0m17.496s
+```
