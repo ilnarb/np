@@ -1,36 +1,76 @@
 # np
 
-NetPipe is pipe over the TCP like **nc** (netcat) with additional features:
+NetPipe is pipe over the TCP like **nc** (Ncat) with additional features:
 1. listens to connections infinitely
-1. could accept parallel connections 
+1. accepts parallel connections 
 1. starts specified command for all connections separately
-1. returns back command stdout to the client
+1. returns back command's stdout to the client
 1. sends a signal in case of command failed and client side exits with 1
 
-## example 1
+## Build and install
 
-`server$ np -l 3000 md5sum`
+```
+mkdir build && cd build && cmake .. && make install
+```
 
-`client$ np localhost 3000 < file`
+### Example 1
+##### NetPipe
+```
+server$ np -l 3000 md5sum
 
-> 6de5dd9caade388447c1d4747472cfcf  -
+client$ np localhost 3000 < file
+6de5dd9caade388447c1d4747472cfcf  -
 
-`client$ np localhost 3000 < file`
+client$ np localhost 3000 < file
+6de5dd9caade388447c1d4747472cfcf  -
+```
+##### Ncat
+```
+server$ nc -l 3000 -c md5sum
 
-> 6de5dd9caade388447c1d4747472cfcf  -
+client$ nc localhost 3000 < file
+client$ np localhost 3000 < file
+Ncat: Connection refused.
+```
 
-## example 2
+### Example 2
+##### NetPipe
+```
+server$ np -l 3000 tar -C /path/to -xpv
 
-`server$ np -l 3000 tar -C /path/to -xpv`
+client$ tar -c file1 sub/file2 | np localhost 3000
+file1
+sub/file2
 
-`client$ tar -c file1 sub/file2 | np localhost 3000`
+client$ tar -c file3 sub/file4 | np localhost 3000`
+file3
+sub/file4
+```
+##### Ncat
+```
+server$ nc -l 3000 -c "tar -C /path/to -xpv"
 
-> file1
+client$ tar -c file1 sub/file2 | nc localhost 3000
+client$ tar -c file3 sub/file4 | nc localhost 3000`
+Ncat: Connection refused.
+```
 
-> sub/file2
+### Benchmark on 15Gb file
+##### NetPipe
+```
+server$ np -l 3000 "cat >/dev/null"
 
-`client$ tar -c file3 sub/file4 | np localhost 3000`
+client$ time np localhost 3000 < file
+real	0m12.963s
+user	0m0.767s
+sys	0m12.190s
+```
+##### Ncat
+```
+server$ nc -l 3000 -c "cat >/dev/null"
 
-> file3
-
-> sub/file4
+client$ time nc localhost 3000 < file
+real	0m25.887s
+user	0m7.592s
+sys	0m17.496s
+```
