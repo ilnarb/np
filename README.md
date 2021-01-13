@@ -16,7 +16,7 @@ mkdir build && cd build && cmake .. && make install
 ### Example 1
 ##### NetPipe
 ```
-server$ np -l 3000 md5sum
+server$ np -l 3000 -- md5sum
 
 client$ np localhost 3000 < file
 6de5dd9caade388447c1d4747472cfcf  -
@@ -36,7 +36,7 @@ Ncat: Connection refused.
 ### Example 2
 ##### NetPipe
 ```
-server$ np -l 3000 tar -C /path/to -xpv
+server$ np -l 3000 -- tar -C /path/to -xpv
 
 client$ tar -c file1 sub/file2 | np localhost 3000
 file1
@@ -58,7 +58,7 @@ Ncat: Connection refused.
 ### Benchmark on 15Gb file
 ##### NetPipe
 ```
-server$ np -l 3000 "cat >/dev/null"
+server$ np -l 3000 -c "cat >/dev/null"
 
 client$ time np localhost 3000 < file
 real	0m12.963s
