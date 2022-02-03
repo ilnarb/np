@@ -75,3 +75,5 @@ real	0m25.887s
 user	0m7.592s
 sys	0m17.496s
 ```
+
+NetPipe consumes less CPU.
