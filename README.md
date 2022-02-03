@@ -2,7 +2,7 @@
 
 NetPipe makes a pipe over the TCP like **nc** (Ncat) with additional features:
 1. listens to connections infinitely
-1. accepts parallel connections 
+1. accepts parallel connections
 1. starts specified command for all connections separately
 1. returns back command's stdout to the client
 1. sends a signal in case of command failed and client side exits with 1
@@ -32,6 +32,7 @@ client$ nc localhost 3000 < file
 client$ np localhost 3000 < file
 Ncat: Connection refused.
 ```
+As you see, *nc* supports/listens only one connection per launch.
 
 ### Example 2
 ##### NetPipe
